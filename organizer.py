@@ -51,29 +51,54 @@ def organize_folder(folder):
         print(f"Error: '{folder}' is not a folder.")
         return False
 
-    for file_path in folder.iterdir():
+    try:
+        files = list(folder.iterdir())
+    except OSError as error:
+        print(f"Error: Cannot read the folder '{folder}'.")
+        print(f"Reason: {error}")
+        return False
+
+    had_errors = False
+    files_processed = 0
+
+    for file_path in files:
         if not file_path.is_file():
             continue
 
+        files_processed += 1
         category = get_category(file_path)
         category_folder = folder / category
 
-        category_folder.mkdir(exist_ok=True)
+        try:
+            category_folder.mkdir(exist_ok=True)
 
-        destination = category_folder / file_path.name
-        destination = get_unique_destination(destination)
+            destination = category_folder / file_path.name
+            destination = get_unique_destination(destination)
 
-        shutil.move(str(file_path), str(destination))
+            shutil.move(str(file_path), str(destination))
 
-        if destination.name == file_path.name:
-            print(f"Moved: {file_path.name} -> {category}/")
-        else:
-            print(
-                f"Moved: {file_path.name} -> "
-                f"{category}/{destination.name} "
-                f"(renamed to avoid duplicate)"
-            )
+            if destination.name == file_path.name:
+                print(f"Moved: {file_path.name} -> {category}/")
+            else:
+                print(
+                    f"Moved: {file_path.name} -> "
+                    f"{category}/{destination.name} "
+                    f"(renamed to avoid duplicate)"
+                )
 
+        except OSError as error:
+            had_errors = True
+            print(f"Error: Could not move '{file_path.name}'.")
+            print(f"Reason: {error}")
+
+    if files_processed == 0:
+        print("No files found to organize.")
+
+    if had_errors:
+        print("Completed with errors.")
+        return False
+
+    print("Organization completed successfully.")
     return True
 
 
